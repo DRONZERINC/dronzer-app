@@ -1,11 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { sites, adminTasks, documentStats, projects, company } from "@/lib/mockData";
-
-const totalHeadcount = sites.reduce((s, x) => s + x.headcount, 0);
-const maxHeadcount = Math.max(...sites.map((s) => s.headcount));
+import { getEmployees, type Employee } from "@/lib/supabase/employees";
 
 const priorityColors: Record<string, { bg: string; text: string }> = {
   high: { bg: "rgba(239,68,68,0.12)", text: "#f87171" },
@@ -18,6 +17,20 @@ const overBudgetCount = projects.filter((p) => p.status === "over_budget").lengt
 const atRiskCount = projects.filter((p) => p.status === "at_risk").length;
 
 export default function AdminDashboard() {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+  useEffect(() => {
+    getEmployees().then(setEmployees).catch(() => {});
+  }, []);
+
+  const activeEmployees = employees.filter((e) => e.status === "active");
+  const totalHeadcount = activeEmployees.length;
+  const siteHeadcounts = sites.map((s) => ({
+    ...s,
+    headcount: activeEmployees.filter((e) => e.site === s.id).length,
+  }));
+  const maxHeadcount = Math.max(...siteHeadcounts.map((s) => s.headcount), 1);
+
   return (
     <AppShell requiredRole="admin">
       <div className="p-6 max-w-6xl mx-auto">
@@ -78,7 +91,7 @@ export default function AdminDashboard() {
               </span>
             </div>
             <div className="space-y-4">
-              {sites.map((site) => (
+              {siteHeadcounts.map((site) => (
                 <div key={site.id}>
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
@@ -109,7 +122,7 @@ export default function AdminDashboard() {
 
             {/* Site breakdown percentages */}
             <div className="flex gap-3 mt-5 pt-4" style={{ borderTop: "1px solid #2a3347" }}>
-              {sites.map((site) => (
+              {siteHeadcounts.map((site) => (
                 <div key={site.id} className="flex-1 text-center">
                   <div
                     className="text-xs font-bold"
