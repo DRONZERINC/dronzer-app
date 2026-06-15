@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
-import { sites, adminTasks, documentStats, projects, company } from "@/lib/mockData";
+import { sites, adminTasks, documentStats, company } from "@/lib/mockData";
 import { getEmployees, type Employee } from "@/lib/supabase/employees";
+import { getProjects, isOverBudget, type Project } from "@/lib/supabase/projects";
 
 const priorityColors: Record<string, { bg: string; text: string }> = {
   high: { bg: "rgba(239,68,68,0.12)", text: "#f87171" },
@@ -12,24 +13,27 @@ const priorityColors: Record<string, { bg: string; text: string }> = {
   low: { bg: "rgba(100,116,139,0.15)", text: "#94a3b8" },
 };
 
-const openProjectsCount = projects.length;
-const overBudgetCount = projects.filter((p) => p.status === "over_budget").length;
-const atRiskCount = projects.filter((p) => p.status === "at_risk").length;
-
 export default function AdminDashboard() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [projects,  setProjects]  = useState<Project[]>([]);
 
   useEffect(() => {
     getEmployees().then(setEmployees).catch(() => {});
+    getProjects().then(setProjects).catch(() => {});
   }, []);
 
-  const activeEmployees = employees.filter((e) => e.status === "active");
-  const totalHeadcount = activeEmployees.length;
-  const siteHeadcounts = sites.map((s) => ({
+  const activeEmployees   = employees.filter((e) => e.status === "active");
+  const totalHeadcount    = activeEmployees.length;
+  const siteHeadcounts    = sites.map((s) => ({
     ...s,
     headcount: activeEmployees.filter((e) => e.site === s.id).length,
   }));
-  const maxHeadcount = Math.max(...siteHeadcounts.map((s) => s.headcount), 1);
+  const maxHeadcount      = Math.max(...siteHeadcounts.map((s) => s.headcount), 1);
+
+  const activeProjects    = projects.filter((p) => p.status !== "archived");
+  const openProjectsCount = activeProjects.length;
+  const overBudgetCount   = activeProjects.filter(isOverBudget).length;
+  const atRiskCount       = activeProjects.filter((p) => p.status === "at_risk" && !isOverBudget(p)).length;
 
   return (
     <AppShell requiredRole="admin">
