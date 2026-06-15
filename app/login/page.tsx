@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, UserRole } from "@/lib/auth";
-import { currentEmployee, adminUser } from "@/lib/mockData";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("employee");
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
-  const { login, user, isLoading } = useAuth();
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const { login, signup, user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -21,12 +23,27 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setMessage("");
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    const name = role === "admin" ? adminUser.name : currentEmployee.name;
-    const resolvedEmail = email || (role === "admin" ? adminUser.email : currentEmployee.email);
-    login(name, resolvedEmail, role);
-    router.push(role === "admin" ? "/admin" : "/employee");
+
+    if (mode === "signup") {
+      const { error: err } = await signup(email, password, role);
+      if (err) {
+        setError(err);
+      } else {
+        setMessage("Account created! Check your email to confirm, then sign in.");
+        setMode("signin");
+      }
+    } else {
+      const { error: err } = await login(email, password);
+      if (err) {
+        setError(err);
+      }
+      // On success, onAuthStateChange updates user → useEffect above handles redirect
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -63,7 +80,7 @@ export default function LoginPage() {
           style={{ background: "#161b27", border: "1px solid #2a3347" }}
         >
           <h2 className="text-xl font-semibold mb-1" style={{ color: "#e2e8f0" }}>
-            Sign in to your account
+            {mode === "signin" ? "Sign in to your account" : "Create your account"}
           </h2>
           <p className="text-sm mb-6" style={{ color: "#64748b" }}>
             Gulf Pioneer Petroleum Contractors
@@ -72,14 +89,18 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
-              <label className="block text-xs font-medium mb-1.5 tracking-wide uppercase" style={{ color: "#94a3b8" }}>
+              <label
+                className="block text-xs font-medium mb-1.5 tracking-wide uppercase"
+                style={{ color: "#94a3b8" }}
+              >
                 Email address
               </label>
               <input
-                type="text"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@gppc.com"
+                required
                 className="w-full rounded-lg px-4 py-3 text-sm outline-none transition-all"
                 style={{
                   background: "#1a1f2e",
@@ -93,7 +114,10 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-medium mb-1.5 tracking-wide uppercase" style={{ color: "#94a3b8" }}>
+              <label
+                className="block text-xs font-medium mb-1.5 tracking-wide uppercase"
+                style={{ color: "#94a3b8" }}
+              >
                 Password
               </label>
               <input
@@ -101,6 +125,8 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                required
+                minLength={6}
                 className="w-full rounded-lg px-4 py-3 text-sm outline-none transition-all"
                 style={{
                   background: "#1a1f2e",
@@ -114,8 +140,11 @@ export default function LoginPage() {
 
             {/* Role Selector */}
             <div>
-              <label className="block text-xs font-medium mb-2 tracking-wide uppercase" style={{ color: "#94a3b8" }}>
-                Sign in as
+              <label
+                className="block text-xs font-medium mb-2 tracking-wide uppercase"
+                style={{ color: "#94a3b8" }}
+              >
+                {mode === "signup" ? "Sign up as" : "Sign in as"}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 {(["employee", "admin"] as UserRole[]).map((r) => (
@@ -143,6 +172,26 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Error */}
+            {error && (
+              <div
+                className="rounded-lg px-4 py-3 text-xs"
+                style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Success message */}
+            {message && (
+              <div
+                className="rounded-lg px-4 py-3 text-xs"
+                style={{ background: "rgba(34,197,94,0.1)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.2)" }}
+              >
+                {message}
+              </div>
+            )}
+
             {/* Submit */}
             <button
               type="submit"
@@ -160,22 +209,27 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                  Signing in…
+                  {mode === "signin" ? "Signing in…" : "Creating account…"}
                 </span>
-              ) : (
+              ) : mode === "signin" ? (
                 "Sign In"
+              ) : (
+                "Create Account"
               )}
             </button>
           </form>
 
-          {/* Demo note */}
-          <div
-            className="mt-6 rounded-lg px-4 py-3 text-xs"
-            style={{ background: "#1a1f2e", color: "#64748b", border: "1px solid #2a3347" }}
-          >
-            <span style={{ color: "#14b8a6", fontWeight: 600 }}>Demo mode:</span> Any credentials work. Select{" "}
-            <strong>Employee</strong> or <strong>Admin</strong> to explore each view.
-          </div>
+          {/* Mode toggle */}
+          <p className="mt-5 text-center text-xs" style={{ color: "#64748b" }}>
+            {mode === "signin" ? "New to Dronzer?" : "Already have an account?"}{" "}
+            <button
+              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); setMessage(""); }}
+              className="font-medium transition-colors"
+              style={{ color: "#f59e0b" }}
+            >
+              {mode === "signin" ? "Create an account" : "Sign in"}
+            </button>
+          </p>
         </div>
 
         <p className="text-center mt-6 text-xs" style={{ color: "#374151" }}>

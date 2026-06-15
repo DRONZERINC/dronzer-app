@@ -27,8 +27,8 @@ export default function Sidebar() {
 
   const nav = user?.role === "admin" ? adminNav : employeeNav;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/login");
   };
 
