@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import AppShell from "@/components/AppShell";
+import { useAuth } from "@/lib/auth";
 import { sites, departments } from "@/lib/mockData";
 import {
   getEmployees,
@@ -40,6 +41,7 @@ const siteLabel = (siteId: string | null) => {
 const emptyForm = (): Partial<EmployeeInsert> => ({ status: "active" });
 
 export default function WorkforcePage() {
+  const { user } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -132,6 +134,7 @@ export default function WorkforcePage() {
           salary: form.salary ?? null,
           status: form.status ?? "active",
           hire_date: form.hire_date || null,
+          company_id: user?.companyId ?? null,
         });
       } else {
         await updateEmployee(editTarget!.id, {

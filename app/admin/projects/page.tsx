@@ -169,6 +169,7 @@ export default function ProjectsPage() {
         milestone_pct: Number(form.milestone_pct ?? 0),
         budget_amount: Number(form.budget_amount ?? 0),
         actual_spend: Number(form.actual_spend ?? 0),
+        company_id: user?.companyId ?? null,
       };
       if (formMode === "add") await createProject(payload);
       else await updateProject(editTarget!.id, payload);
@@ -206,6 +207,7 @@ export default function ProjectsPage() {
         category:    expForm.category,
         description: expForm.description || null,
         created_by:  user?.email ?? null,
+        company_id:  user?.companyId ?? null,
       });
       setExpForm({ date: today(), category: "Labour", amount: "", description: "" });
       await loadExpenses(projectId);

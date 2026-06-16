@@ -10,6 +10,7 @@ export interface Employee {
   salary: number | null;
   status: "active" | "inactive";
   hire_date: string | null;
+  company_id: string | null;
   created_at: string;
   updated_at: string;
 }

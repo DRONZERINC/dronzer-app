@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import AppShell from '@/components/AppShell'
+import { useAuth } from '@/lib/auth'
 import { createEmployee } from '@/lib/supabase/employees'
 import { createProject } from '@/lib/supabase/projects'
 
@@ -363,6 +364,7 @@ function AIRecordTable({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function FilesPage() {
+  const { user } = useAuth()
   const [isDragging, setIsDragging] = useState(false)
   const [pageState, setPageState] = useState<PageState>('idle')
   const [progress, setProgress] = useState(0)
@@ -507,6 +509,7 @@ export default function FilesPage() {
               salary: r.salary ?? null,
               status: r.status === 'inactive' ? 'inactive' : 'active',
               hire_date: r.hire_date ?? null,
+              company_id: user?.companyId ?? null,
             })
             return true
           } catch { return false }
@@ -533,6 +536,7 @@ export default function FilesPage() {
               budget_amount: r.budget_amount ?? 0,
               actual_spend: 0,
               milestone_pct: r.milestone_pct ?? 0,
+              company_id: user?.companyId ?? null,
             })
             return true
           } catch { return false }

@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "./supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 export type UserRole = "employee" | "admin";
 
@@ -10,6 +11,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  companyId: string | null;
 }
 
 interface AuthContextValue {
@@ -41,28 +43,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const supabase = createClient();
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    async function buildAuthUser(u: User): Promise<AuthUser> {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_id, role, full_name")
+        .eq("id", u.id)
+        .single();
+      return {
+        name: profile?.full_name || (u.user_metadata?.name as string) || u.email?.split("@")[0] || "User",
+        email: u.email!,
+        role: ((profile?.role ?? u.user_metadata?.role) as UserRole) ?? "employee",
+        companyId: profile?.company_id ?? null,
+      };
+    }
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const u = session.user;
-        setUser({
-          name: u.user_metadata?.name || u.email?.split("@")[0] || "User",
-          email: u.email!,
-          role: (u.user_metadata?.role as UserRole) || "employee",
-        });
+        setUser(await buildAuthUser(session.user));
       }
       setIsLoading(false);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        const u = session.user;
-        setUser({
-          name: u.user_metadata?.name || u.email?.split("@")[0] || "User",
-          email: u.email!,
-          role: (u.user_metadata?.role as UserRole) || "employee",
-        });
+        setUser(await buildAuthUser(session.user));
       } else {
         setUser(null);
       }

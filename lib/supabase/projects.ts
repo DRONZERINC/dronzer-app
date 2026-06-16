@@ -13,6 +13,7 @@ export interface Project {
   milestone_pct: number;
   budget_amount: number;
   actual_spend: number;
+  company_id: string | null;
   created_at: string;
   updated_at: string;
 }

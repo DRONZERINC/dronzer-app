@@ -10,6 +10,7 @@ export interface ProjectExpense {
   category: ExpenseCategory;
   description: string | null;
   created_by: string | null;
+  company_id: string | null;
   created_at: string;
 }
 
