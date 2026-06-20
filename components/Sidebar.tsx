@@ -3,7 +3,6 @@
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { company } from "@/lib/mockData";
 
 const employeeNav = [
   { href: "/employee", label: "Dashboard", icon: "⊞" },
@@ -56,7 +55,10 @@ export default function Sidebar() {
           </span>
         </div>
         <p className="text-xs mt-1.5 truncate" style={{ color: "#4b5563" }}>
-          {company.shortName} · {user?.role === "admin" ? "Admin" : "Employee"}
+          {user?.companyName
+            ? user.companyName.split(/\s+/).map((w) => w[0]).join("").toUpperCase().slice(0, 4)
+            : "Co"}{" "}
+          · {user?.role === "admin" ? "Admin" : "Employee"}
         </p>
       </div>
 

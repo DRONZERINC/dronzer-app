@@ -28,6 +28,17 @@ export async function getEmployees(): Promise<Employee[]> {
   return data;
 }
 
+export async function getEmployeeByEmail(email: string): Promise<Employee | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("employees")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function createEmployee(emp: EmployeeInsert): Promise<Employee> {
   const supabase = createClient();
   const { data, error } = await supabase

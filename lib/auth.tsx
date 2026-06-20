@@ -12,6 +12,8 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   companyId: string | null;
+  companyName: string | null;
+  companyIndustry: string | null;
 }
 
 interface AuthContextValue {
@@ -46,14 +48,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function buildAuthUser(u: User): Promise<AuthUser> {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("company_id, role, full_name")
+        .select("company_id, role, full_name, companies(name, industry)")
         .eq("id", u.id)
         .single();
+      const co = (profile as unknown as { companies?: { name: string; industry: string | null } | null })?.companies ?? null;
       return {
         name: profile?.full_name || (u.user_metadata?.name as string) || u.email?.split("@")[0] || "User",
         email: u.email!,
         role: ((profile?.role ?? u.user_metadata?.role) as UserRole) ?? "employee",
         companyId: profile?.company_id ?? null,
+        companyName: co?.name ?? null,
+        companyIndustry: co?.industry ?? null,
       };
     }
 
@@ -62,13 +67,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(await buildAuthUser(session.user));
       }
       setIsLoading(false);
-    });
+    }).catch(() => setIsLoading(false));
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser(await buildAuthUser(session.user));
+        buildAuthUser(session.user).then(setUser).catch(() => {});
       } else {
         setUser(null);
       }
